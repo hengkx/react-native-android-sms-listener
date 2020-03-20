@@ -44,7 +44,9 @@ public class SmsReceiver extends BroadcastReceiver {
 
         receivedMessage.putString("originatingAddress", message.getOriginatingAddress());
         receivedMessage.putString("body", message.getMessageBody());
-
+        receivedMessage.putString("time", message.getTimestampMillis());
+        receivedMessage.putString("icc", message.getIndexOnIcc());
+ 
         mContext
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
             .emit(EVENT, receivedMessage);
