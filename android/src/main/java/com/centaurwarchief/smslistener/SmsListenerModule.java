@@ -55,7 +55,7 @@ public class SmsListenerModule extends ReactContextBaseJavaModule implements Lif
 
     @Override
     public void onHostPause() {
-        unregisterReceiver(mReceiver);
+        // unregisterReceiver(mReceiver);
     }
 
     @Override
