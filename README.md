@@ -9,7 +9,7 @@ A utility that allows you to listen for incoming SMS messages.[fork](https://git
 ### Example
 
 ```JS
-import SmsListener from 'react-native-android-sms-listener'
+import SmsListener from 'react-native-android-sms-listener2'
 
 SmsListener.addListener(message => {
   console.info(message)
@@ -70,8 +70,8 @@ If you're using Twilio or a similar third-party messaging service which you have
 ### Installation
 
 ```SH
-$ npm install --save react-native-android-sms-listener
-$ react-native link react-native-android-sms-listener
+$ npm install --save react-native-android-sms-listener2
+$ react-native link react-native-android-sms-listener2
 ```
 
 ### Manual Installation
@@ -81,15 +81,15 @@ For a manual installation, all you need to do to use this so-called utility is:
 _android/settings.gradle_
 
 ```Gradle
-include ':react-native-android-sms-listener'
-project(':react-native-android-sms-listener').projectDir = new File(rootProject.projectDir,'../node_modules/react-native-android-sms-listener/android')
+include ':react-native-android-sms-listener2'
+project(':react-native-android-sms-listener2').projectDir = new File(rootProject.projectDir,'../node_modules/react-native-android-sms-listener/android')
 ```
 
 _android/app/build.gradle_
 
 ```Gradle
 dependencies {
-  compile project(':react-native-android-sms-listener')
+  compile project(':react-native-android-sms-listener2')
   // (...)
 }
 ```
