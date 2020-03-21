@@ -13,6 +13,10 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
 public class SmsReceiver extends BroadcastReceiver {
     private ReactApplicationContext mContext;
 
@@ -26,56 +30,87 @@ public class SmsReceiver extends BroadcastReceiver {
         mContext = context;
     }
 
-    private void receiveMessage(SmsMessage message) {
-        if (mContext == null) {
+    private void receiveMessages(SmsMessage[] messages) throws Exception {
+        if (mContext == null || messages == null) {
             return;
         }
 
-        if (! mContext.hasActiveCatalystInstance()) {
+        if (!mContext.hasActiveCatalystInstance()) {
             return;
         }
 
-        Log.d(
-            SmsListenerPackage.TAG,
-            String.format("%s: %s", message.getOriginatingAddress(), message.getMessageBody())
-        );
+        Class ownerClass = Class.forName("android.telephony.SmsMessage");
+        Method method = ownerClass.getMethod("getSubId");
 
-        WritableNativeMap receivedMessage = new WritableNativeMap();
+        Map<String, String> msg = new HashMap<String, String>(messages.length);
+        Map<String, Integer> msgSubId = new HashMap<String, Integer>(messages.length);
+        Map<String, Long> msgTime = new HashMap<String, Long>(messages.length);
+        for (SmsMessage message : messages) {
+            String originatingAddress = message.getOriginatingAddress();
 
-        receivedMessage.putString("originatingAddress", message.getOriginatingAddress());
-        receivedMessage.putString("body", message.getMessageBody());
-        receivedMessage.putString("time", message.getTimestampMillis());
-        receivedMessage.putString("icc", message.getIndexOnIcc());
- 
-        mContext
-            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-            .emit(EVENT, receivedMessage);
+            // Check if index with number exists
+            if (!msg.containsKey(originatingAddress)) {
+                msg.put(originatingAddress, message.getMessageBody());
+                int subId = (int) method.invoke(message);
+                msgSubId.put(originatingAddress, subId);
+                msgTime.put(originatingAddress, message.getTimestampMillis());
+            } else {
+                String previousParts = msg.get(originatingAddress);
+                String msgString = previousParts + message.getMessageBody();
+                msg.put(originatingAddress, msgString);
+            }
+        }
+
+        for (String sender : msg.keySet()) {
+            Log.d(
+                    SmsListenerPackage.TAG,
+                    String.format("%s: %s", sender, msg.get(sender))
+            );
+
+            WritableNativeMap receivedMessage = new WritableNativeMap();
+
+            receivedMessage.putString("originatingAddress", sender);
+            receivedMessage.putString("body", msg.get(sender));
+            receivedMessage.putDouble("time", msgTime.get(sender));
+            receivedMessage.putInt("subId", msgSubId.get(sender));
+
+            mContext
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                    .emit(EVENT, receivedMessage);
+        }
+
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        SmsMessage[] messages = null;
+        ;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            for (SmsMessage message : Telephony.Sms.Intents.getMessagesFromIntent(intent)) {
-                receiveMessage(message);
-            }
+            messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
+        } else {
+            try {
+                final Bundle bundle = intent.getExtras();
 
-            return;
+                if (bundle == null || !bundle.containsKey("pdus")) {
+                    return;
+                }
+
+                final Object[] pdus = (Object[]) bundle.get("pdus");
+                messages = new SmsMessage[pdus.length];
+                for (int i = 0; i < pdus.length; i++) {
+                    byte[] pdu = (byte[]) pdus[i];
+                    messages[i] = SmsMessage.createFromPdu(pdu);
+                }
+            } catch (Exception e) {
+                Log.e(SmsListenerPackage.TAG, e.getMessage());
+            }
         }
 
         try {
-            final Bundle bundle = intent.getExtras();
-
-            if (bundle == null || ! bundle.containsKey("pdus")) {
-                return;
-            }
-
-            final Object[] pdus = (Object[]) bundle.get("pdus");
-
-            for (Object pdu : pdus) {
-                receiveMessage(SmsMessage.createFromPdu((byte[]) pdu));
-            }
+            receiveMessages(messages);
         } catch (Exception e) {
-            Log.e(SmsListenerPackage.TAG, e.getMessage());
+            e.printStackTrace();
+
         }
     }
 }
