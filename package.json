@@ -1,6 +1,6 @@
 {
   "name": "react-native-android-sms-listener2",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Allows you to listen for incoming SMS messages",
   "license": "MIT",
   "main": "index.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hengkx/react-native-android-sms-listener2.git"
+    "url": "https://github.com/hengkx/react-native-android-sms-listener.git"
   },
   "keywords": [
     "react",
